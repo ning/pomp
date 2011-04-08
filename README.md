@@ -35,9 +35,13 @@ Channel labels allow you to have multiple channels on a page and send messages t
 Internally, pomp.js assigns each message a unique ID so that the callbacks are routed properly.
 
 Some nice future enhancements might be:
+
 - allowing different success and error callbacks
+
 - taking the per-message callbacks from success and error elements of the request properties instead of a separate argument
+
 - Allowing for some restriction of messages being send/received only with certain origins.
+
 - returning more than just response body (status code, etc.)
 
 
