@@ -1,0 +1,96 @@
+<html>
+<head>
+  </head>
+<body><script src="//ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+var onMessage = function(e) {
+    var data = e.data;
+    var origin = e.origin; /* string: the origin protocol + host */
+    var source = e.source; /* window object of the message source */
+
+    /* If you wanted to accept messages only from certain origins,
+     * right here would be a nice place to check for that. */
+
+    /* Only allow access to certain URLs on this host -- you 
+     * probably don't want to proxy everything
+     */
+    var allowed_urls = [ RegExp("^/api/"), RegExp("^/version$") ]
+
+    var payload;
+    var response = {};
+
+    var reply = function(p) { 
+        response.payload = p;
+        source.postMessage(JSON.stringify(response), origin);
+    }
+
+    try {
+        payload = JSON.parse(data);
+        /* Payload should contain the following args that will
+         * get passed to jQuery.ajax():
+         * 
+         * type (required)
+         * url  (required)
+         * contentType (optional)
+         * processData (optional)
+         * data (optional)
+         *
+         * A messageId is also expected so that it can be returned with the response
+         */
+        request_args = {};
+        if (payload.hasOwnProperty('type')) {
+            request_args.type = payload.type;
+        } else {
+            throw "No type specified";
+        }
+        if (payload.hasOwnProperty('url')) {
+            request_args.url = payload.url;
+        } else {
+            throw "No url specified";
+        }
+        var url_valid = false;
+        for (var i in allowed_urls) {
+            if (request_args.url.match(allowed_urls[i])) {
+                url_valid = true;
+                break;
+            }
+        }
+        if (! url_valid) {
+            throw "Invalid URL: " + request_args.url;
+        }
+        
+        if (payload.hasOwnProperty('messageId')) {
+            response.messageId = payload.messageId;
+        } else {
+            throw "No message ID specified in " + data;
+        }
+
+        if (payload.hasOwnProperty('contentType')) {
+            request_args.contentType = payload.contentType;
+        }
+        if (payload.hasOwnProperty('processData')) {
+            request_args.processData = payload.processData
+        }
+        if (payload.hasOwnProperty('data')) {
+            request_args.data = payload.data
+        }
+
+        /* Always just reply with the response body */
+        request_args.success = reply;
+        request_args.error = function(jqXHR, textStatus, errorThrown) { reply(jqXHR.responseText); }
+
+        /* And send the proxied request */
+        $.ajax(request_args);
+    } catch (e) {
+        reply(e.toString());
+    }
+};
+// Listen for messages
+if (window.addEventListener) {
+    window.addEventListener('message', onMessage, false);
+} else {
+    window.attachEvent('onmessage', onMessage);
+}
+</script>
+</body>
+</html>
